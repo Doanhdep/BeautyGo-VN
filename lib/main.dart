@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'package:beautygovn/features/auth/presentation/screens/SplashActive.dart'
     as splash;
 import 'package:beautygovn/features/auth/presentation/screens/login_screen.dart'
     as login;
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: 'https://rvsppsaphldehuoqmxig.supabase.co',
+    anonKey: 'sb_publishable_qPtSgd4MeoFY3timcbhNFw_Wxjntvro',
+  );
+
+  print('Supabase connected successfully');
+
   runApp(const BeautyGoApp());
 }
 
@@ -35,14 +46,17 @@ class _AuthFlowHost extends StatefulWidget {
 class _AuthFlowHostState extends State<_AuthFlowHost> {
   bool _showSplash = true;
   login.ScreenId _currentScreen = login.ScreenId.login;
+
   String _userName = 'Beauty Lover';
   String _userRole = 'enthusiast';
 
   @override
   void initState() {
     super.initState();
+
     Future.delayed(const Duration(seconds: 2), () {
       if (!mounted) return;
+
       setState(() {
         _showSplash = false;
         _currentScreen = login.ScreenId.login;
@@ -58,11 +72,13 @@ class _AuthFlowHostState extends State<_AuthFlowHost> {
     if (screen == splash.ScreenId.login || screen == splash.ScreenId.register) {
       setState(() {
         _showSplash = false;
+
         _currentScreen =
             screen == splash.ScreenId.login
                 ? login.ScreenId.login
                 : login.ScreenId.register;
       });
+
       return;
     }
 

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:beautygovn/core/services/auth_service.dart';
 
 enum ScreenId { welcome, login, register, roleSelection, profile, createShop }
 
@@ -29,6 +31,8 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isSubmitting = false;
   String successMsg = '';
 
+  final AuthService _authService = AuthService();
+
   String? emailError;
   String? matchError;
 
@@ -44,18 +48,70 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // ===================== LOGIN =====================
-  void _handleLogin() async {
-    setState(() => isSubmitting = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
-    setState(() => isSubmitting = false);
+  // ===================== LOGIN =====================
+  Future<void> _handleLogin() async {
+    final email = emailCtrl.text.trim();
+    final password = passwordCtrl.text.trim();
 
-    widget.onUserUpdate(
-      emailCtrl.text.split('@').first.isNotEmpty
-          ? emailCtrl.text.split('@').first
-          : 'Beauty Lover',
-      'enthusiast',
-    );
-    widget.onNavigate(ScreenId.profile);
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Vui lòng nhập email')));
+      return;
+    }
+
+    if (password.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Vui lòng nhập mật khẩu')));
+      return;
+    }
+
+    try {
+      setState(() {
+        isSubmitting = true;
+      });
+
+      final authUser = await _authService.login(
+        email: email,
+        password: password,
+      );
+
+      if (authUser != null) {
+        if (!mounted) return;
+
+        print('Đăng nhập thành công');
+        print(authUser);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Xin chào ${authUser.fullName}')),
+        );
+
+        /// update user local state
+        widget.onUserUpdate(authUser.username, authUser.role);
+
+        /// navigate
+        widget.onNavigate(ScreenId.profile);
+      }
+    } on AuthException catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+    } finally {
+      if (!mounted) return;
+
+      setState(() {
+        isSubmitting = false;
+      });
+    }
   }
 
   // ===================== REGISTER =====================
@@ -571,12 +627,13 @@ class _LoginScreenState extends State<LoginScreen> {
       width: double.infinity,
       height: 48,
       child: ElevatedButton(
-        onPressed: enabled && !isLoading ? onPressed : null,
+        onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF1A1A1A),
           foregroundColor: Colors.white,
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           elevation: 0,
+          minimumSize: const Size(double.infinity, 55),
         ),
         child:
             isLoading
